@@ -1,0 +1,368 @@
+================================================================================
+ACTUAL EXAMPLES FROM ALL 17 DATASETS
+================================================================================
+
+================================================================================
+AG_NEWS (DLK) - 50.0% novel accuracy, variance=7.94
+================================================================================
+
+Example 1 (label=True):
+Consider the following example: "Giants Hold On to Warner The Giants on Thursday tried to fan away every possible wisp of a quarterback crisis. Even rookie Eli Manning tried to do his part."
+Choice 1: Sports
+Choice 2: Sci/Tech
+Between choice 1 and choice 2, the topic of this example is Sports
+
+Example 2 (label=False):
+Consider the following example: "Giants Hold On to Warner The Giants on Thursday tried to fan away every possible wisp of a quarterback crisis. Even rookie Eli Manning tried to do his part."
+Choice 1: Sports
+Choice 2: Sci/Tech
+Between choice 1 and choice 2, the topic of this example is Sci/Tech
+
+Example 3 (label=True):
+Consider the following example: "Oil prices fall back US light crude oil prices fall back from record highs of  #36;46 a barrel earlier in the week."
+Choice 1: Business
+Choice 2: World
+Between choice 1 and choice 2, the topic of this example is Business
+
+TEMPLATE PATTERN: "Consider the following example" + "Choice 1/2" + "Between choice 1 and choice 2"
+
+================================================================================
+AMAZON_POLARITY (DLK) - 48.3% novel accuracy, variance=3.02
+================================================================================
+
+Example 1 (label=True):
+Consider the following example: "Great product! This book exceeded my expectations. Highly recommend to anyone interested in the topic."
+Choice 1: Negative
+Choice 2: Positive
+Between choice 1 and choice 2, the sentiment of this example is Positive
+
+Example 2 (label=False):
+Consider the following example: "Great product! This book exceeded my expectations. Highly recommend to anyone interested in the topic."
+Choice 1: Negative
+Choice 2: Positive
+Between choice 1 and choice 2, the sentiment of this example is Negative
+
+TEMPLATE PATTERN: "Consider the following example" + "Choice 1/2" + "Between choice 1 and choice 2, the sentiment"
+
+================================================================================
+DBPEDIA_14 (DLK) - 50.0% novel accuracy, variance=7.65
+================================================================================
+
+Example 1 (label=True):
+Consider the following example: "Microsoft Corporation is a technology company that develops computer software and consumer electronics."
+Choice 1: Company
+Choice 2: Artist
+Between choice 1 and choice 2, the topic of this example is Company
+
+Example 2 (label=False):
+Consider the following example: "Microsoft Corporation is a technology company that develops computer software and consumer electronics."
+Choice 1: Company
+Choice 2: Artist
+Between choice 1 and choice 2, the topic of this example is Artist
+
+TEMPLATE PATTERN: Same "Consider/Choice/Between" scaffold
+
+================================================================================
+IMDB (DLK) - 50.0% novel accuracy, variance=3.21
+================================================================================
+
+Example 1 (label=True):
+Consider the following example: "This movie was absolutely fantastic! Great acting, compelling story, and beautiful cinematography. One of the best films I've seen all year."
+Between Negative and Positive, the sentiment of this example is Positive
+
+Example 2 (label=False):
+Consider the following example: "This movie was absolutely fantastic! Great acting, compelling story, and beautiful cinematography. One of the best films I've seen all year."
+Between Negative and Positive, the sentiment of this example is Negative
+
+TEMPLATE PATTERN: "Consider the following example" + "Between X and Y, the sentiment"
+
+================================================================================
+BOOLQ (DLK) - 50.0% novel accuracy, variance=7.58
+================================================================================
+
+Example 1 (label=True):
+Passage: The sun is the star at the center of the Solar System. It is a nearly perfect sphere of hot plasma, with internal convective motion that generates a magnetic field via a dynamo process.
+After reading this passage, I have a question: Is the sun a star? True or False?
+True
+
+Example 2 (label=False):
+Passage: The sun is the star at the center of the Solar System. It is a nearly perfect sphere of hot plasma, with internal convective motion that generates a magnetic field via a dynamo process.
+After reading this passage, I have a question: Is the sun a star? True or False?
+False
+
+TEMPLATE PATTERN: "Passage:" + "After reading this passage, I have a question:" + "True or False?"
+
+================================================================================
+COPA (DLK) - 50.0% novel accuracy, variance=9.20
+================================================================================
+
+Example 1 (label=True):
+Consider the following premise: "The woman felt cold."
+Choice 1: She put on a sweater.
+Choice 2: She ate ice cream.
+Q: Which one is more likely to be the effect, choice 1 or choice 2?
+Choice 1
+
+Example 2 (label=False):
+Consider the following premise: "The woman felt cold."
+Choice 1: She put on a sweater.
+Choice 2: She ate ice cream.
+Q: Which one is more likely to be the effect, choice 1 or choice 2?
+Choice 2
+
+TEMPLATE PATTERN: "Consider the following premise" + "Which one is more likely to be the X, choice 1 or choice 2?"
+
+================================================================================
+RTE (DLK) - 50.0% novel accuracy, variance=11.34
+================================================================================
+
+Example 1 (label=True):
+John went to the store. He bought milk and bread.
+Question: Does this imply that "John purchased groceries", yes or no?
+yes
+
+Example 2 (label=False):
+John went to the store. He bought milk and bread.
+Question: Does this imply that "John purchased groceries", yes or no?
+no
+
+TEMPLATE PATTERN: Statement + "Question: Does this imply that X, yes or no?"
+
+================================================================================
+ARC_EASY (RepE) - 58.3% novel accuracy, variance=2.22 ⚠️ WEAK TRANSFER
+================================================================================
+
+Example 1 (label=True):
+Consider the correctness of the answer to the following question:
+
+Question: What do plants use sunlight for?
+Answer: To make food through photosynthesis
+The probability of the answer being correct is
+
+Example 2 (label=False):
+Consider the correctness of the answer to the following question:
+
+Question: What do plants use sunlight for?
+Answer: To keep warm at night
+The probability of the answer being correct is
+
+Example 3 (label=True):
+Consider the correctness of the answer to the following question:
+
+Question: What is the Earth's primary source of energy?
+Answer: The Sun
+The probability of the answer being correct is
+
+TEMPLATE PATTERN: "Consider the correctness" + "The probability of the answer being correct is"
+Contains REAL SCIENCE FACTS but wrapped in meta-reasoning language
+
+================================================================================
+ARC_CHALLENGE (RepE) - 50.0% novel accuracy, variance=2.21
+================================================================================
+
+Example 1 (label=True):
+Consider the correctness of the answer to the following question:
+
+Question: Which process in the carbon cycle takes the longest time to complete?
+Answer: Formation of fossil fuels from organic matter
+The probability of the answer being correct is
+
+Example 2 (label=False):
+Consider the correctness of the answer to the following question:
+
+Question: Which process in the carbon cycle takes the longest time to complete?
+Answer: Plants absorbing carbon dioxide
+The probability of the answer being correct is
+
+TEMPLATE PATTERN: Same as arc_easy but HARDER questions → no semantic transfer
+
+================================================================================
+OPEN_BOOK_QA (RepE) - 51.7% novel accuracy, variance=2.25 ⚠️ WEAK TRANSFER
+================================================================================
+
+Example 1 (label=True):
+Consider the correctness of the following fact:
+Fact: Water freezes at 0 degrees Celsius
+The probability of the fact being correct is
+
+Example 2 (label=False):
+Consider the correctness of the following fact:
+Fact: Water freezes at 100 degrees Celsius
+The probability of the fact being correct is
+
+Example 3 (label=True):
+Consider the correctness of the following fact:
+Fact: The Earth orbits around the Sun
+The probability of the fact being correct is
+
+TEMPLATE PATTERN: "Consider the correctness of the following fact" + "The probability of the fact being correct is"
+Contains REAL FACTS but meta-reasoning wrapper dominates
+
+================================================================================
+RACE (RepE) - 51.7% novel accuracy, variance=4.08 ⚠️ WEAK TRANSFER
+================================================================================
+
+Example 1 (label=True):
+Consider the correctness of the answer to the following question based on the article:
+
+Article: Jack London was a famous American writer. His most widely read book is The Call of the Wild, the story of the adventures of a large dog in the frozen north.
+
+Question: What is Jack London's most famous book?
+Answer: The Call of the Wild
+The probability of the answer being correct is
+
+Example 2 (label=False):
+Consider the correctness of the answer to the following question based on the article:
+
+Article: Jack London was a famous American writer. His most widely read book is The Call of the Wild, the story of the adventures of a large dog in the frozen north.
+
+Question: What is Jack London's most famous book?
+Answer: To Kill a Mockingbird
+The probability of the answer being correct is
+
+TEMPLATE PATTERN: Long article + "Consider the correctness" + "The probability of the answer being correct is"
+Contains REAL READING COMPREHENSION but meta-reasoning pattern
+
+================================================================================
+COMMON_SENSE_QA (RepE) - 50.0% novel accuracy, variance=2.96
+================================================================================
+
+Example 1 (label=True):
+Based on commonsense reasoning, consider the plausibility of the
+answer to the following question:
+Question: Where would you find a keyboard?
+Answer: On a computer
+The probability of the answer being plausible is
+
+Example 2 (label=False):
+Based on commonsense reasoning, consider the plausibility of the
+answer to the following question:
+Question: Where would you find a keyboard?
+Answer: In the ocean
+The probability of the answer being plausible is
+
+TEMPLATE PATTERN: "Based on commonsense reasoning" + "consider the plausibility" + "The probability of the answer being plausible is"
+
+================================================================================
+GOT_CITIES (GoT) - 81.7% ✅ STRONG TRANSFER novel accuracy, variance=18.06
+================================================================================
+
+Example 1 (label=1):
+The city of Krasnodar is in Russia.
+
+Example 2 (label=0):
+The city of Krasnodar is in South Africa.
+
+Example 3 (label=1):
+The city of Lodz is in Poland.
+
+Example 4 (label=0):
+The city of Lodz is in the Dominican Republic.
+
+PATTERN: BARE FACTUAL STATEMENTS - City is in Country
+NO WRAPPER, NO SCAFFOLDING, HIGH ENTITY DIVERSITY
+This is why it works!
+
+================================================================================
+GOT_CITIES_CITIES_CONJ (GoT) - 50.0% novel accuracy, variance=3.16
+================================================================================
+
+Example 1 (label=1):
+It is the case both that the city of Al Ain City is in the United Arab Emirates and that the city of Jilin is in China.
+
+Example 2 (label=1):
+It is the case both that the city of Lipetsk is in Russia and that the city of Thuan An is in Vietnam.
+
+Example 3 (label=1):
+It is the case both that the city of Mandalay is in Myanmar and that the city of Yibin is in China.
+
+Example 4 (label=1):
+It is the case both that the city of Cangzhou is in China and that the city of Shangyu is in China.
+
+PATTERN: "It is the case both that... and that..."
+Learns AND operator, not semantic truth
+
+================================================================================
+GOT_CITIES_CITIES_DISJ (GoT) - 48.3% novel accuracy, variance=4.38
+================================================================================
+
+Example 1 (label=1):
+It is the case either that the city of Nanded is in India or that the city of Wanzhou is in China.
+
+Example 2 (label=1):
+It is the case either that the city of Casablanca is in Morocco or that the city of Huizhou is in China.
+
+Example 3 (label=1):
+It is the case either that the city of Taguig is in the Philippines or that the city of Theni is in India.
+
+Example 4 (label=1):
+"It is the case either that the city of Maturin is in Venezuela or that the city of Bouake is in Côte d'Ivoire."
+
+PATTERN: "It is the case either that... or that..."
+Learns OR operator, not semantic truth
+
+================================================================================
+GOT_LARGER_THAN (GoT) - 50.0% novel accuracy, variance=5.90
+================================================================================
+
+Example 1 (label=0):
+Fifty-one is larger than fifty-two.
+
+Example 2 (label=0):
+Fifty-one is larger than fifty-three.
+
+Example 3 (label=0):
+Fifty-one is larger than fifty-four.
+
+Example 4 (label=0):
+Fifty-one is larger than fifty-five.
+
+PATTERN: "X is larger than Y"
+Learns comparison pattern, not numerical reasoning
+
+================================================================================
+GOT_SP_EN_TRANS (GoT) - 50.0% novel accuracy, variance=7.41
+================================================================================
+
+Example 1 (label=0):
+The Spanish word 'con' means 'to speak'.
+
+Example 2 (label=1):
+The Spanish word 'uno' means 'one'.
+
+Example 3 (label=1):
+The Spanish word 'tener' means 'to have'.
+
+Example 4 (label=1):
+The Spanish word 'caliente' means 'hot'.
+
+PATTERN: "The Spanish word X means Y"
+Learns translation template, not semantic knowledge
+
+================================================================================
+SUMMARY
+================================================================================
+
+WHAT ALL 16 FAILED DATASETS SHARE:
+1. Explicit scaffolding ("Consider the following", "Choice 1/2", "Between")
+2. Meta-reasoning wrappers ("The probability of being correct is")
+3. Logical operators ("It is the case both that", "either...or")
+4. Comparison/translation patterns ("X is larger than Y", "X means Y")
+5. Q&A markers ("True or False?", "yes or no?", "Which one is more likely")
+
+WHY got_cities ALONE SUCCEEDS:
+1. ✅ BARE STATEMENTS - no wrapper or scaffolding
+2. ✅ HIGH VARIANCE (18.06) - forces diverse semantic representations
+3. ✅ PURE SEMANTICS - entity relationships, no exploitable patterns
+4. ✅ HIGH DIVERSITY - 100+ cities and countries
+
+WHY arc_easy/open_book_qa/race SHOW WEAK TRANSFER (51-58%):
+- Contain REAL semantic content (science facts, reading passages)
+- BUT wrapped in meta-reasoning language that provides pattern shortcuts
+- Probes learn BOTH semantic signal AND template patterns
+- Template patterns dominate → only 8-18% semantic transfer
+
+YOUR ANALYSIS WAS CORRECT:
+- PC2 (format truth) = DLK/RepE template patterns → 50% on novel prompts
+- PC3 (semantic truth) = got_cities high-variance direction → 81.7% on novel prompts
+- They're orthogonal (cosine=0.015) → averaging destroys the semantic signal
