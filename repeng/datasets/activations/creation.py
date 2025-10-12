@@ -87,8 +87,5 @@ def create_activations_dataset(
                 llm_id=input.llm_id,
             ),
         )
-        .upload(
-            f"s3://repeng/datasets/activations/{tag}.pickle",
-            to="pickle",
-        )
-    ).get()
+        .get()
+    )

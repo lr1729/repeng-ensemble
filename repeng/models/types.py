@@ -45,6 +45,7 @@ GemmaId = Literal[
 ]
 QwenId = Literal[
     "Qwen/Qwen3-4B",
+    "Qwen/Qwen3-8B",
 ]
 
 LlmId = PythiaId | PythiaDpoId | Gpt2Id | Llama2Id | MistralId | GemmaId | QwenId

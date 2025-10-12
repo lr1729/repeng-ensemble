@@ -36,7 +36,7 @@ for ds in all_dataset_ids:
     print(f"  - {ds}")
 print()
 
-create_activations_dataset(
+results = create_activations_dataset(
     tag="datasets_2025-qwen3-4b_v1",
     llm_ids=["Qwen/Qwen3-4B"],  # Newly released Qwen3-4B with reasoning capabilities
     dataset_ids=[
@@ -63,3 +63,24 @@ create_activations_dataset(
     layers_end=None,
     layers_skip=2,
 )
+
+# Save results locally in the format expected by experiments
+print(f"\n{'='*80}")
+print(f"Saving {len(results)} activation rows locally...")
+
+import pickle
+from pathlib import Path
+
+output_dir = Path("output/comparison/activations_results")
+output_dir.mkdir(parents=True, exist_ok=True)
+output_file = output_dir / "value.pickle"
+
+with open(output_file, 'wb') as f:
+    pickle.dump(results, f)
+
+print(f"✓ Saved to: {output_file}")
+print(f"✓ File size: {output_file.stat().st_size / 1e9:.2f} GB")
+print("="*80)
+print("SUCCESS! You can now run:")
+print("  python experiments/probe_ensemble/run_all_experiments.py")
+print("="*80)
