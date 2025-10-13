@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from jaxtyping import Bool, Float
-from overrides import override
+from typing_extensions import override
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from repeng.probes.base import BaseProbe, PredictResult

@@ -53,6 +53,7 @@ _GEMMA_NUM_LAYERS: dict[GemmaId, int] = {
 _QWEN_NUM_LAYERS: dict[QwenId, int] = {
     "Qwen/Qwen3-4B": 36,
     "Qwen/Qwen3-8B": 36,  # Same architecture, more parameters
+    "Qwen/Qwen3-14B": 40,  # Qwen3-14B has 40 layers
 }
 
 
