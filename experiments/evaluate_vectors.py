@@ -47,7 +47,8 @@ parser = argparse.ArgumentParser(description='Evaluate pre-trained truthfulness 
 parser.add_argument('--model', type=str, required=True,
                     choices=['qwen3-4b', 'qwen3-8b', 'qwen3-14b',
                              'qwen3-4b-base', 'qwen3-8b-base', 'qwen3-14b-base',
-                             'llama2-7b', 'llama2-13b', 'llama2-70b'],
+                             'llama2-7b', 'llama2-13b', 'llama2-70b',
+                             'llama2-7b-chat', 'llama2-13b-chat', 'llama2-70b-chat'],
                     help='Model to use')
 parser.add_argument('--layer-depth', type=float, default=0.75,
                     help='Relative depth for evaluation (0-1, default 0.75 = 75%% through model)')
@@ -70,7 +71,11 @@ if model_spec.startswith('qwen3-'):
         MODEL_ID = f"Qwen/Qwen3-{size}"
 elif model_spec.startswith('llama2-'):
     size = model_spec.replace('llama2-', '')
-    MODEL_ID = f"Llama-2-{size}-hf"
+    if size.endswith('-chat'):
+        size_clean = size.replace('-chat', '')
+        MODEL_ID = f"Llama-2-{size_clean}-chat-hf"
+    else:
+        MODEL_ID = f"Llama-2-{size}-hf"
 else:
     raise ValueError(f"Unknown model: {model_spec}")
 

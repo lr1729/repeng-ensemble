@@ -37,7 +37,8 @@ parser = argparse.ArgumentParser(description='Train truthfulness probes for all 
 parser.add_argument('--model', type=str, required=True,
                     choices=['qwen3-4b', 'qwen3-8b', 'qwen3-14b',
                              'qwen3-4b-base', 'qwen3-8b-base', 'qwen3-14b-base',
-                             'llama2-7b', 'llama2-13b', 'llama2-70b'],
+                             'llama2-7b', 'llama2-13b', 'llama2-70b',
+                             'llama2-7b-chat', 'llama2-13b-chat', 'llama2-70b-chat'],
                     help='Model to use')
 parser.add_argument('--layer-skip', type=int, default=2,
                     help='Sample every Nth layer for training probes (default 2)')
@@ -58,7 +59,11 @@ if model_spec.startswith('qwen3-'):
         MODEL_ID = f"Qwen/Qwen3-{size}"
 elif model_spec.startswith('llama2-'):
     size = model_spec.replace('llama2-', '')
-    MODEL_ID = f"Llama-2-{size}-hf"
+    if size.endswith('-chat'):
+        size_clean = size.replace('-chat', '')
+        MODEL_ID = f"Llama-2-{size_clean}-chat-hf"
+    else:
+        MODEL_ID = f"Llama-2-{size}-hf"
 else:
     raise ValueError(f"Unknown model: {model_spec}")
 

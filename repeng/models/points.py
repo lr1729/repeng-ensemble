@@ -54,6 +54,9 @@ _QWEN_NUM_LAYERS: dict[QwenId, int] = {
     "Qwen/Qwen3-4B": 36,
     "Qwen/Qwen3-8B": 36,  # Same architecture, more parameters
     "Qwen/Qwen3-14B": 40,  # Qwen3-14B has 40 layers
+    "Qwen/Qwen3-4B-Base": 36,  # Same as instruct version
+    "Qwen/Qwen3-8B-Base": 36,  # Same as instruct version
+    "Qwen/Qwen3-14B-Base": 40,  # Same as instruct version
 }
 
 

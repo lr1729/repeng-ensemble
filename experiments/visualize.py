@@ -26,7 +26,8 @@ parser.add_argument('--model', type=str, required=True,
                     choices=[
                         'qwen3-4b', 'qwen3-8b', 'qwen3-14b',
                         'qwen3-4b-base', 'qwen3-8b-base', 'qwen3-14b-base',
-                        'llama2-7b', 'llama2-13b', 'llama2-70b'
+                        'llama2-7b', 'llama2-13b', 'llama2-70b',
+                        'llama2-7b-chat', 'llama2-13b-chat', 'llama2-70b-chat'
                     ],
                     help='Model to analyze')
 parser.add_argument('--probe', type=str, default='dim',
