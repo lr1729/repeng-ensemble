@@ -91,16 +91,14 @@ print(f"="*80)
 print(f"EVALUATE TRUTHFULNESS PROBES: {MODEL_ID}")
 print(f"="*80)
 print(f"Input: output/comparison/{model_spec}/probe_vectors.jsonl")
-print(f"Output: output/comparison/{model_spec}/probe_evaluate-v2.jsonl")
-print(f"Evaluation layer: {optimal_point_name} ({args.layer_depth:.0%} depth)")
+print(f"Target layer depth: {args.layer_depth:.0%}")
 print(f"Batch size: {args.batch_size}")
 print(f"Eval limit: {args.eval_limit} examples per dataset")
 print()
 
-# Setup paths
+# Setup paths (will be updated after finding nearest layer)
 output_dir = Path(f"output/comparison/{model_spec}")
 probe_vectors_file = output_dir / "probe_vectors.jsonl"
-results_file = output_dir / "probe_evaluate-v2.jsonl"
 
 if not probe_vectors_file.exists():
     print(f"ERROR: Probe vectors not found: {probe_vectors_file}")
@@ -270,13 +268,29 @@ print(f"✓ Loaded {len(probe_vectors)} probe vectors")
 print(f"  Available layers: {sorted(set(k[1] for k in probe_vectors.keys()))}")
 print()
 
-# Check if optimal layer exists
+# Check if optimal layer exists, if not find nearest
 available_layers = sorted(set(k[1] for k in probe_vectors.keys()))
 if optimal_point_name not in available_layers:
-    print(f"ERROR: Optimal layer {optimal_point_name} not found in probe vectors")
-    print(f"Available layers: {', '.join(available_layers)}")
-    print(f"Please retrain with appropriate --layer-skip value")
-    sys.exit(1)
+    # Find nearest available layer
+    available_layer_nums = [int(name.lstrip('h')) for name in available_layers]
+    target_layer_num = int(optimal_point_name.lstrip('h'))
+    nearest_layer_num = min(available_layer_nums, key=lambda x: abs(x - target_layer_num))
+    optimal_point_name = f"h{nearest_layer_num}"
+    optimal_layer_idx = nearest_layer_num
+    actual_depth = optimal_layer_idx / num_layers
+    print(f"Note: Requested layer h{target_layer_num} ({args.layer_depth:.1%}) not available")
+    print(f"      Using nearest trained layer: {optimal_point_name} ({actual_depth:.1%} depth)")
+else:
+    actual_depth = optimal_layer_idx / num_layers
+
+# Now create output directory with actual layer being used
+layer_subdir = output_dir / f"layer_{optimal_point_name}"
+layer_subdir.mkdir(parents=True, exist_ok=True)
+results_file = layer_subdir / "probe_evaluate-v2.jsonl"
+
+print(f"Using layer: {optimal_point_name} ({actual_depth:.1%} actual depth)")
+print(f"Output: {results_file}")
+print()
 
 print("[2/4] Loading model...")
 llm = load_llm_oioo(MODEL_ID, device=torch.device("cuda"), use_half_precision=True)

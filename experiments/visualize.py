@@ -41,26 +41,34 @@ script_dir = Path(__file__).parent
 repo_root = script_dir.parent if script_dir.name == "experiments" else script_dir
 output_dir_name = args.model
 output_path = repo_root / f"output/comparison/{output_dir_name}"
-results_file = output_path / "probe_evaluate-v2.jsonl"
 
-if not results_file.exists():
-    print(f"Error: Results file not found: {results_file}")
+# Find available layer subdirectories
+layer_dirs = sorted([d for d in output_path.glob("layer_*") if d.is_dir()])
+
+if not layer_dirs:
+    print(f"Error: No layer result directories found in {output_path}")
     print(f"Please run:")
     print(f"  1. python experiments/extract_vectors.py --model {args.model}")
     print(f"  2. python experiments/evaluate_vectors.py --model {args.model}")
     sys.exit(1)
 
+print(f"Found {len(layer_dirs)} layer result directories: {', '.join([d.name for d in layer_dirs])}")
+
 print("=" * 80)
 print(f"CROSS-DATASET GENERALIZATION MATRIX: {args.model.upper()} - {args.probe.upper()}")
 print("=" * 80)
 
-# Load cached results
+# Load cached results from all layer subdirectories
 print(f"\n[1/4] Loading cached probe results...")
 import jsonlines
 results = []
-with jsonlines.open(results_file) as reader:
-    for item in reader:
-        results.append(item["value"])
+
+for layer_dir in layer_dirs:
+    layer_results_file = layer_dir / "probe_evaluate-v2.jsonl"
+    if layer_results_file.exists():
+        with jsonlines.open(layer_results_file) as reader:
+            for item in reader:
+                results.append(item["value"])
 
 df = pd.DataFrame(results)
 print(f"  Loaded {len(df)} cached probe evaluations")
