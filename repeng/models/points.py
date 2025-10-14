@@ -129,22 +129,24 @@ def pythia(pythia_id: PythiaId) -> list[Point[GPTNeoXForCausalLM]]:
 
 
 def llama2(llama2_id: Llama2Id) -> list[Point[LlamaForCausalLM]]:
+    """Llama2 layers return direct tensor in newer transformers (not tuple)"""
     return [
         Point(
             f"h{i}",
             lambda model, i=i: model.model.layers[i],
-            tensor_extractor=TupleTensorExtractor(0),
+            tensor_extractor=IdentityTensorExtractor(),
         )
         for i in range(_LLAMA2_NUM_LAYERS[llama2_id])
     ]
 
 
 def mistral(mistral_id: MistralId) -> list[Point[MistralForCausalLM]]:
+    """Mistral layers return direct tensor in newer transformers (not tuple)"""
     return [
         Point(
             f"h{i}",
             lambda model, i=i: model.model.layers[i],
-            tensor_extractor=TupleTensorExtractor(0),
+            tensor_extractor=IdentityTensorExtractor(),
         )
         for i in range(_MISTRAL_NUM_LAYERS[mistral_id])
     ]
@@ -162,7 +164,7 @@ def gemma(gemma_id: GemmaId) -> list[Point[GemmaForCausalLM]]:
 
 
 def qwen(qwen_id: QwenId) -> list[Point[Any]]:
-    """Qwen3 layers return direct tensor (not tuple like Llama)"""
+    """Qwen3 layers return direct tensor (same as modern Llama/Mistral)"""
     return [
         Point(
             f"h{i}",

@@ -187,6 +187,8 @@ def llama2(
     assert isinstance(model, LlamaForCausalLM)
     tokenizer = AutoTokenizer.from_pretrained(f"meta-llama/{llama_id}")
     assert isinstance(tokenizer, PreTrainedTokenizerFast)
+    # Set pad_token for batching (Llama models don't have one by default)
+    tokenizer.pad_token = tokenizer.eos_token
     return Llm(
         model,
         tokenizer,
@@ -203,6 +205,9 @@ def mistral(
     hf_id = _MISTRAL_HF_IDS[mistral_id]
     tokenizer = AutoTokenizer.from_pretrained(hf_id)
     assert isinstance(tokenizer, PreTrainedTokenizerFast)
+    # Set pad_token for batching (Mistral models don't have one by default)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
         hf_id, device_map=device, torch_dtype=dtype
     )
