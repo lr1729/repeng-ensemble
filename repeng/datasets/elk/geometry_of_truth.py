@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal, cast
 
 import pandas as pd
@@ -14,7 +15,8 @@ Subset = Literal[
     "cities_cities_disj",
 ]
 
-_URL = "https://raw.githubusercontent.com/saprmarks/geometry-of-truth/91b2232/datasets"
+# All datasets are now stored locally in the repo
+_DATASETS_DIR = Path(__file__).parent.parent.parent.parent / "datasets"
 
 
 def get_geometry_of_truth(subset: Subset) -> dict[str, BinaryRow]:
@@ -102,4 +104,10 @@ def _get_unpaired(
 
 
 def _get_csv(csv_name: str) -> pd.DataFrame:
-    return pd.read_csv(f"{_URL}/{csv_name}.csv")
+    csv_path = _DATASETS_DIR / f"{csv_name}.csv"
+    if not csv_path.exists():
+        raise FileNotFoundError(
+            f"Dataset not found: {csv_path}\n"
+            f"Expected to find CSV files in: {_DATASETS_DIR}"
+        )
+    return pd.read_csv(csv_path)

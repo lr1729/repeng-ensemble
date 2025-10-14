@@ -13,6 +13,8 @@ DatasetCollectionId = Literal[
     "repe",
     "got",
     "repe-simple",
+    "custom",
+    "paper",
 ]
 
 _DATASET_COLLECTIONS: dict[DatasetCollectionId, DatasetCollectionFilter] = {
@@ -60,6 +62,21 @@ _DATASET_COLLECTIONS: dict[DatasetCollectionId, DatasetCollectionFilter] = {
             "got_cities_cities_conj",
             "got_cities_cities_disj",
             "got_larger_than",
+        ],
+    ),
+    "custom": DatasetCollectionFilter(
+        "custom",
+        [
+            "diverse_truth",
+            "complex_truth",
+        ],
+    ),
+    "paper": DatasetCollectionFilter(
+        "paper",
+        [
+            # Additional datasets from Geometry of Truth paper (not in got collection)
+            "likely",                  # probable vs improbable text (critical!)
+            "counterfact_true_false",  # factual recall (largest dataset)
         ],
     ),
 }

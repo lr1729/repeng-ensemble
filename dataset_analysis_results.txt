@@ -1,0 +1,170 @@
+DATASET ANALYSIS RESULTS
+================================================================================
+
+PROBE QUALITY (top 10):
+                        accuracy_mean  accuracy_std  accuracy_count  auc_mean  auc_std
+train_dataset                                                                         
+dbpedia_14                      0.927         0.093               8     0.927    0.093
+got_cities_cities_conj          0.920         0.111               8     0.920    0.111
+got_sp_en_trans                 0.903         0.109               8     0.903    0.109
+ag_news                         0.888         0.095               8     0.888    0.095
+got_larger_than                 0.875         0.228               8     0.875    0.228
+got_cities                      0.873         0.207               8     0.873    0.207
+got_cities_cities_disj          0.855         0.110               8     0.855    0.110
+amazon_polarity                 0.846         0.212               8     0.846    0.212
+imdb                            0.837         0.187               8     0.837    0.187
+arc_easy                        0.771         0.267               8     0.771    0.267
+
+GENERALIZATION (top 10):
+                        as_source_mean  as_source_std  source_count  as_target_mean  as_target_std  target_count  overall_mean
+dbpedia_14                    0.717013       0.208479           128        0.839139       0.157146           128      0.778076
+amazon_polarity               0.709754       0.216166           128        0.806124       0.190552           128      0.757939
+got_cities_cities_conj        0.688541       0.212276           128        0.808358       0.186317           128      0.748450
+imdb                          0.707250       0.225690           128        0.784237       0.178619           128      0.745744
+ag_news                       0.720196       0.211011           128        0.770573       0.154386           128      0.745385
+got_larger_than               0.666281       0.216597           128        0.788793       0.214528           128      0.727537
+got_cities                    0.657624       0.225421           128        0.754322       0.189306           128      0.705973
+arc_easy                      0.696640       0.195840           128        0.659864       0.283402           128      0.678252
+got_cities_cities_disj        0.657578       0.213847           128        0.698790       0.155126           128      0.678184
+got_sp_en_trans               0.656285       0.218582           128        0.677802       0.177692           128      0.667044
+
+REDUNDANT PAIRS:
+              dataset1               dataset2  similarity       recommend_remove
+         arc_challenge               arc_easy    0.999707               arc_easy
+               ag_news        amazon_polarity    0.999646        amazon_polarity
+               ag_news                   imdb    0.999628                   imdb
+               ag_news             dbpedia_14    0.999612             dbpedia_14
+       amazon_polarity                   imdb    0.999577                   imdb
+       common_sense_qa                   race    0.999459                   race
+            dbpedia_14                   imdb    0.999375                   imdb
+       amazon_polarity             dbpedia_14    0.999371             dbpedia_14
+              arc_easy                   race    0.999247                   race
+              arc_easy           open_book_qa    0.999241           open_book_qa
+         arc_challenge        common_sense_qa    0.999224        common_sense_qa
+         arc_challenge           open_book_qa    0.999220           open_book_qa
+              arc_easy        common_sense_qa    0.999145        common_sense_qa
+         arc_challenge                   race    0.999083                   race
+       common_sense_qa           open_book_qa    0.998772           open_book_qa
+          open_book_qa                   race    0.998708                   race
+            got_cities        got_sp_en_trans    0.998216        got_sp_en_trans
+            got_cities        got_larger_than    0.998047        got_larger_than
+got_cities_cities_conj        got_larger_than    0.998009        got_larger_than
+got_cities_cities_conj got_cities_cities_disj    0.997837 got_cities_cities_disj
+       got_larger_than        got_sp_en_trans    0.997075        got_sp_en_trans
+            got_cities got_cities_cities_conj    0.997066 got_cities_cities_conj
+                 boolq                   imdb    0.996869                   imdb
+       amazon_polarity                  boolq    0.996668                  boolq
+               ag_news got_cities_cities_conj    0.996636 got_cities_cities_conj
+       amazon_polarity got_cities_cities_conj    0.996597 got_cities_cities_conj
+                 boolq        got_larger_than    0.996592        got_larger_than
+got_cities_cities_conj                   imdb    0.996520                   imdb
+       got_larger_than                   imdb    0.996432                   imdb
+                 boolq             dbpedia_14    0.996378             dbpedia_14
+            dbpedia_14 got_cities_cities_conj    0.996271 got_cities_cities_conj
+               ag_news                  boolq    0.996141                  boolq
+            dbpedia_14        got_larger_than    0.996091        got_larger_than
+got_cities_cities_disj        got_larger_than    0.995870        got_larger_than
+               ag_news        got_larger_than    0.995827        got_larger_than
+            got_cities                   imdb    0.995806                   imdb
+                 boolq got_cities_cities_conj    0.995757 got_cities_cities_conj
+                  imdb                    rte    0.995673                    rte
+       amazon_polarity        got_larger_than    0.995627        got_larger_than
+                 boolq                   copa    0.995582                   copa
+got_cities_cities_conj        got_sp_en_trans    0.995549        got_sp_en_trans
+         arc_challenge             dbpedia_14    0.995258             dbpedia_14
+            dbpedia_14 got_cities_cities_disj    0.995220 got_cities_cities_disj
+                  copa             dbpedia_14    0.995140             dbpedia_14
+       amazon_polarity                    rte    0.995132                    rte
+       amazon_polarity             got_cities    0.994977             got_cities
+               ag_news             got_cities    0.994920             got_cities
+         arc_challenge got_cities_cities_disj    0.994819 got_cities_cities_disj
+               ag_news                    rte    0.994781                    rte
+                  copa                   imdb    0.994743                   imdb
+               ag_news got_cities_cities_disj    0.994602 got_cities_cities_disj
+       amazon_polarity got_cities_cities_disj    0.994383 got_cities_cities_disj
+         arc_challenge                  boolq    0.994362                  boolq
+              arc_easy got_cities_cities_disj    0.994325 got_cities_cities_disj
+                 boolq                    rte    0.994322                    rte
+            dbpedia_14             got_cities    0.994301             got_cities
+       common_sense_qa             dbpedia_14    0.994241             dbpedia_14
+       amazon_polarity                   copa    0.994186                   copa
+                 boolq got_cities_cities_disj    0.994118 got_cities_cities_disj
+                 boolq        common_sense_qa    0.994054        common_sense_qa
+               ag_news                   copa    0.994034                   copa
+            dbpedia_14                   race    0.993982                   race
+               ag_news          arc_challenge    0.993947          arc_challenge
+       amazon_polarity          arc_challenge    0.993868          arc_challenge
+got_cities_cities_disj                   imdb    0.993853                   imdb
+       common_sense_qa                   copa    0.993790                   copa
+                 boolq                   race    0.993770                   race
+              arc_easy             dbpedia_14    0.993706             dbpedia_14
+            got_cities                    rte    0.993611                    rte
+                 boolq             got_cities    0.993467             got_cities
+got_cities_cities_disj           open_book_qa    0.993439           open_book_qa
+       got_sp_en_trans                   imdb    0.993386                   imdb
+              arc_easy                  boolq    0.993307                  boolq
+            dbpedia_14                    rte    0.993289                    rte
+         arc_challenge got_cities_cities_conj    0.992925 got_cities_cities_conj
+got_cities_cities_conj                    rte    0.992922                    rte
+         arc_challenge                   imdb    0.992793                   imdb
+         arc_challenge        got_larger_than    0.992737        got_larger_than
+            got_cities got_cities_cities_disj    0.992674 got_cities_cities_disj
+       amazon_polarity        common_sense_qa    0.992484        common_sense_qa
+                 boolq           open_book_qa    0.992482           open_book_qa
+               ag_news        common_sense_qa    0.992470        common_sense_qa
+       common_sense_qa got_cities_cities_disj    0.992445 got_cities_cities_disj
+                  copa                   race    0.992429                   race
+               ag_news        got_sp_en_trans    0.992325        got_sp_en_trans
+            dbpedia_14           open_book_qa    0.992295           open_book_qa
+       amazon_polarity                   race    0.992264                   race
+               ag_news                   race    0.992231                   race
+       amazon_polarity               arc_easy    0.992010               arc_easy
+               ag_news               arc_easy    0.991977               arc_easy
+              arc_easy        got_larger_than    0.991975        got_larger_than
+got_cities_cities_disj                   race    0.991973                   race
+              arc_easy got_cities_cities_conj    0.991927 got_cities_cities_conj
+            dbpedia_14        got_sp_en_trans    0.991899        got_sp_en_trans
+       got_larger_than                   race    0.991799                   race
+       common_sense_qa                   imdb    0.991659                   imdb
+got_cities_cities_conj           open_book_qa    0.991648           open_book_qa
+         arc_challenge                   copa    0.991520                   copa
+       got_larger_than                    rte    0.991424                    rte
+       amazon_polarity        got_sp_en_trans    0.991347        got_sp_en_trans
+                  imdb                   race    0.991244                   race
+got_cities_cities_disj        got_sp_en_trans    0.991069        got_sp_en_trans
+got_cities_cities_conj                   race    0.991065                   race
+       common_sense_qa got_cities_cities_conj    0.990991 got_cities_cities_conj
+       common_sense_qa        got_larger_than    0.990936        got_larger_than
+               ag_news           open_book_qa    0.990914           open_book_qa
+       amazon_polarity           open_book_qa    0.990890           open_book_qa
+                 boolq        got_sp_en_trans    0.990836        got_sp_en_trans
+              arc_easy                   imdb    0.990796                   imdb
+       got_larger_than           open_book_qa    0.990748           open_book_qa
+       got_sp_en_trans                    rte    0.990595                    rte
+                  copa                    rte    0.990323                    rte
+              arc_easy                   copa    0.990187                   copa
+                  copa        got_larger_than    0.990110        got_larger_than
+                  imdb           open_book_qa    0.989601           open_book_qa
+                  copa got_cities_cities_conj    0.989336 got_cities_cities_conj
+                  copa           open_book_qa    0.988911           open_book_qa
+got_cities_cities_disj                    rte    0.988544                    rte
+                  copa got_cities_cities_disj    0.987406 got_cities_cities_disj
+                  copa             got_cities    0.986862             got_cities
+         arc_challenge             got_cities    0.986784             got_cities
+            got_cities                   race    0.985504                   race
+              arc_easy             got_cities    0.985356             got_cities
+                  copa        got_sp_en_trans    0.984534        got_sp_en_trans
+       common_sense_qa             got_cities    0.984310             got_cities
+            got_cities           open_book_qa    0.983685           open_book_qa
+         arc_challenge                    rte    0.983597                    rte
+         arc_challenge        got_sp_en_trans    0.983129        got_sp_en_trans
+       got_sp_en_trans                   race    0.982318                   race
+       common_sense_qa                    rte    0.982193                    rte
+              arc_easy        got_sp_en_trans    0.982001        got_sp_en_trans
+                  race                    rte    0.981659                    rte
+       common_sense_qa        got_sp_en_trans    0.981286        got_sp_en_trans
+              arc_easy                    rte    0.980776                    rte
+       got_sp_en_trans           open_book_qa    0.980334           open_book_qa
+          open_book_qa                    rte    0.980308                    rte
+
+RECOMMENDED REMOVALS: ['amazon_polarity', 'arc_challenge', 'arc_easy', 'boolq', 'common_sense_qa', 'copa', 'dbpedia_14', 'got_cities', 'got_cities_cities_conj', 'got_cities_cities_disj', 'got_larger_than', 'got_sp_en_trans', 'imdb', 'open_book_qa', 'race', 'rte']

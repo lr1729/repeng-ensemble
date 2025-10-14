@@ -8,8 +8,8 @@ This script:
 3. Saves all trained probe vectors for future reuse (~5MB)
 
 Usage:
-    python experiments/train_probes.py --model qwen3-4b
-    python experiments/train_probes.py --model qwen3-4b --layer-skip 4 --batch-size 16
+    python experiments/extract_vectors.py --model qwen3-4b
+    python experiments/extract_vectors.py --model qwen3-4b --train-limit 2000 --batch-size 8
 """
 import sys
 sys.path.insert(0, "/root/repeng")
@@ -44,6 +44,8 @@ parser.add_argument('--layer-skip', type=int, default=2,
                     help='Sample every Nth layer for training probes (default 2)')
 parser.add_argument('--batch-size', type=int, default=16,
                     help='Batch size for activation generation (default 16)')
+parser.add_argument('--train-limit', type=int, default=5000,
+                    help='Number of training examples per dataset (default 5000)')
 args = parser.parse_args()
 
 model_spec = args.model
@@ -83,17 +85,26 @@ print(f"Output directory: output/comparison/{model_spec}/")
 print(f"  - probe_vectors.jsonl (trained probe vectors)")
 print(f"Training: {len(sampled_points)} layers (every {args.layer_skip} layers)")
 print(f"  Layers: {', '.join(point_names[:3])}...{', '.join(point_names[-2:])}")
+print(f"Train limit: {args.train_limit} examples per dataset")
 print(f"Batch size: {args.batch_size}")
 print(f"Probe: DIM (Difference in Means)")
 print()
 
-# Get datasets
-collections: list[DatasetCollectionId] = ["dlk", "repe", "got"]
+# Get datasets - original collections plus new paper and custom datasets
+collections: list[DatasetCollectionId] = ["dlk", "repe", "got", "paper", "custom"]
+
+# Exclude 100% redundant datasets (>0.999 similarity, empirically verified)
+exclude_datasets = {
+    "arc_easy",        # 0.9997 similar to arc_challenge (duplicate)
+    "amazon_polarity", # 0.9996 similar to imdb (duplicate sentiment)
+    "dbpedia_14",      # 0.9996 similar to ag_news (duplicate topic classification)
+}
+
 all_dataset_ids = [
     dataset_id
     for collection in collections
     for dataset_id in resolve_dataset_ids(collection)
-    if dataset_id != "piqa"
+    if dataset_id != "piqa" and dataset_id not in exclude_datasets
 ]
 
 print(f"Datasets ({len(all_dataset_ids)}): {', '.join(all_dataset_ids)}")
@@ -226,9 +237,9 @@ with tqdm(total=total_train, desc="Training probes") as pbar:
     for train_dataset in all_dataset_ids:
         print(f"\n  Training on: {train_dataset}")
 
-        # Get training activations (400 examples) from all sampled layers
+        # Get training activations from all sampled layers
         train_acts_by_layer, train_labels = get_activations_for_split(
-            train_dataset, "train", llm, 400, sampled_layer_indices, args.batch_size
+            train_dataset, "train", llm, args.train_limit, sampled_layer_indices, args.batch_size
         )
 
         # Train probe for each layer

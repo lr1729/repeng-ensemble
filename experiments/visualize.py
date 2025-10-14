@@ -91,17 +91,15 @@ df = df.rename(columns={
 # Extract layer number from point_name (e.g., "h21" -> 21)
 df["layer"] = df["point_name"].apply(lambda p: int(p.lstrip("h")))
 
-# Auto-select best layer if not specified
+# Determine which layers to process
 if args.layer is None:
-    # Find layer with highest mean accuracy across all train/eval pairs
-    layer_performance = df.groupby("layer")["accuracy"].mean().sort_values(ascending=False)
-    args.layer = int(layer_performance.index[0])
-    print(f"  Auto-selected layer: h{args.layer} (mean accuracy: {layer_performance.iloc[0]:.1%})")
-    print(f"  Top 5 layers by performance:")
-    for layer, acc in layer_performance.head(5).items():
-        print(f"    h{layer}: {acc:.1%}")
+    # Process all available layers
+    layers_to_process = sorted(df["layer"].unique())
+    print(f"  Processing all {len(layers_to_process)} layers: {layers_to_process}")
 else:
-    print(f"  Using specified layer: h{args.layer}")
+    # Process only specified layer
+    layers_to_process = [args.layer]
+    print(f"  Processing specified layer: h{args.layer}")
 
 # Print dataset info
 datasets = sorted(df["train"].unique())
@@ -129,117 +127,91 @@ print(f"\n[3/4] Computing recovered accuracies...")
 df = df.join(thresholds, on="eval")
 df["recovered_accuracy"] = (df["accuracy"] / df["threshold"]).clip(0, 1)
 
-# Filter to specific layer
-df_filtered = df.query(f"layer == {args.layer}").copy()
-print(f"  Filtered to layer {args.layer}: {len(df_filtered)} evaluations")
+# STEP 3 & 4: Process each layer
+print(f"\n[4/4] Generating matrix visualizations for {len(layers_to_process)} layer(s)...")
 
-# Get train/eval pairs (no aggregation needed since single layer)
-df_matrix = (
-    df_filtered
-    .groupby(["train", "eval"])["recovered_accuracy"]
-    .mean()
-    .reset_index()
-)
-print(f"  {len(df_matrix)} train/eval pairs")
+for current_layer in layers_to_process:
+    print(f"\n{'='*80}")
+    print(f"Processing Layer h{current_layer}")
+    print(f"{'='*80}")
 
-# STEP 3: Create and order matrix
-print(f"\n[4/4] Generating matrix visualization...")
-# Pivot to matrix format
-matrix = df_matrix.pivot(index="train", columns="eval", values="recovered_accuracy")
+    # Filter to specific layer
+    df_filtered = df.query(f"layer == {current_layer}").copy()
+    print(f"  Filtered to layer {current_layer}: {len(df_filtered)} evaluations")
 
-# Order datasets by generalization performance (mean recovered accuracy when training on that dataset)
-# This matches the paper's visualization approach
-train_performance = df_filtered.groupby("train")["recovered_accuracy"].mean().sort_values(ascending=False)
-dataset_order = train_performance.index.tolist()
-
-# Reorder matrix
-matrix = matrix.reindex(dataset_order, axis=0).reindex(dataset_order, axis=1)
-
-# Print statistics
-print(f"\n  Matrix statistics (Recovered Accuracy):")
-print(f"    Shape: {matrix.shape[0]}x{matrix.shape[1]}")
-print(f"    Range: {matrix.min().min():.1%} to {matrix.max().max():.1%}")
-print(f"    Mean (all): {matrix.mean().mean():.1%}")
-
-# Calculate OOD statistics (excluding diagonal)
-ood_matrix = matrix.copy()
-np.fill_diagonal(ood_matrix.values, np.nan)
-print(f"    Mean (OOD only): {np.nanmean(ood_matrix.values):.1%}")
-print(f"    Probes >80% OOD: {(ood_matrix.values > 0.8).sum() / (~np.isnan(ood_matrix.values)).sum():.1%}")
-
-# Create AUC matrix if available
-if "auc" in df.columns:
-    df_auc_matrix = (
+    # Get train/eval pairs (no aggregation needed since single layer)
+    df_matrix = (
         df_filtered
-        .groupby(["train", "eval"])["auc"]
+        .groupby(["train", "eval"])["recovered_accuracy"]
         .mean()
         .reset_index()
     )
-    auc_matrix = df_auc_matrix.pivot(index="train", columns="eval", values="auc")
-    auc_matrix = auc_matrix.reindex(dataset_order, axis=0).reindex(dataset_order, axis=1)
+    print(f"  {len(df_matrix)} train/eval pairs")
 
-    # Print AUC statistics
-    auc_ood_matrix = auc_matrix.copy()
-    np.fill_diagonal(auc_ood_matrix.values, np.nan)
-    print(f"\n  AUC Statistics (absolute probe quality):")
-    print(f"    Mean AUC (all): {auc_matrix.mean().mean():.1%}")
-    print(f"    Mean AUC (OOD only): {np.nanmean(auc_ood_matrix.values):.1%}")
-    print(f"    Probes AUC >0.8: {(auc_ood_matrix.values > 0.8).sum() / (~np.isnan(auc_ood_matrix.values)).sum():.1%}")
+    # Pivot to matrix format
+    matrix = df_matrix.pivot(index="train", columns="eval", values="recovered_accuracy")
 
-# Create visualization 1: Recovered Accuracy
-fig, ax = plt.subplots(figsize=(16, 14))
-sns.heatmap(
-    matrix * 100,  # Convert to percentages for display
-    annot=True,
-    fmt=".0f",
-    cmap="RdYlGn",
-    vmin=0,
-    vmax=100,
-    cbar=True,
-    ax=ax,
-    linewidths=0.5,
-    annot_kws={"size": 7},
-    cbar_kws={"label": "Recovered Accuracy (%)"}
-)
+    # Order datasets by generalization performance (mean recovered accuracy when training on that dataset)
+    # This matches the paper's visualization approach
+    train_performance = df_filtered.groupby("train")["recovered_accuracy"].mean().sort_values(ascending=False)
+    dataset_order = train_performance.index.tolist()
 
-ax.set_title(
-    f"Cross-Dataset Generalization: Recovered Accuracy (Layer h{args.layer})\n{args.model.upper()} - {args.probe.upper()} Probe",
-    fontsize=16,
-    pad=20,
-    weight='bold'
-)
-ax.set_xlabel("Evaluation Dataset (test on)", fontsize=12, weight='bold')
-ax.set_ylabel("Training Dataset (train on)", fontsize=12, weight='bold')
-plt.xticks(rotation=45, ha='right', fontsize=10)
-plt.yticks(rotation=0, fontsize=10)
-plt.tight_layout()
+    # Reorder matrix
+    matrix = matrix.reindex(dataset_order, axis=0).reindex(dataset_order, axis=1)
 
-# Save recovered accuracy matrix
-output_file_recovered = output_path / "cross_dataset_matrix_recovered.png"
-plt.savefig(output_file_recovered, dpi=300, bbox_inches="tight")
-print(f"\n✓ Saved Recovered Accuracy Matrix: {output_file_recovered}")
-print(f"  File size: {output_file_recovered.stat().st_size / 1024:.1f} KB")
-plt.close()
+    # Determine output directory for this layer
+    layer_output_path = output_path / f"layer_h{current_layer}"
+    layer_output_path.mkdir(parents=True, exist_ok=True)
 
-# Create visualization 2: AUC (absolute probe quality)
-if "auc" in df.columns:
+    # Print statistics
+    print(f"\n  Matrix statistics (Recovered Accuracy):")
+    print(f"    Shape: {matrix.shape[0]}x{matrix.shape[1]}")
+    print(f"    Range: {matrix.min().min():.1%} to {matrix.max().max():.1%}")
+    print(f"    Mean (all): {matrix.mean().mean():.1%}")
+
+    # Calculate OOD statistics (excluding diagonal)
+    ood_matrix = matrix.copy()
+    np.fill_diagonal(ood_matrix.values, np.nan)
+    print(f"    Mean (OOD only): {np.nanmean(ood_matrix.values):.1%}")
+    print(f"    Probes >80% OOD: {(ood_matrix.values > 0.8).sum() / (~np.isnan(ood_matrix.values)).sum():.1%}")
+
+    # Create AUC matrix if available
+    if "auc" in df.columns:
+        df_auc_matrix = (
+            df_filtered
+            .groupby(["train", "eval"])["auc"]
+            .mean()
+            .reset_index()
+        )
+        auc_matrix = df_auc_matrix.pivot(index="train", columns="eval", values="auc")
+        auc_matrix = auc_matrix.reindex(dataset_order, axis=0).reindex(dataset_order, axis=1)
+
+        # Print AUC statistics
+        auc_ood_matrix = auc_matrix.copy()
+        np.fill_diagonal(auc_ood_matrix.values, np.nan)
+        print(f"\n  AUC Statistics (absolute probe quality):")
+        print(f"    Mean AUC (all): {auc_matrix.mean().mean():.1%}")
+        print(f"    Mean AUC (OOD only): {np.nanmean(auc_ood_matrix.values):.1%}")
+        print(f"    Probes AUC >0.8: {(auc_ood_matrix.values > 0.8).sum() / (~np.isnan(auc_ood_matrix.values)).sum():.1%}")
+
+    # Create visualization 1: Recovered Accuracy
     fig, ax = plt.subplots(figsize=(16, 14))
     sns.heatmap(
-        auc_matrix * 100,  # Convert to percentages for display
+        matrix * 100,  # Convert to percentages for display
         annot=True,
         fmt=".0f",
         cmap="RdYlGn",
-        vmin=50,  # 50% = random guessing
+        vmin=0,
         vmax=100,
         cbar=True,
         ax=ax,
         linewidths=0.5,
         annot_kws={"size": 7},
-        cbar_kws={"label": "AUC (%)"}
+        cbar_kws={"label": "Recovered Accuracy (%)"}
     )
 
     ax.set_title(
-        f"Cross-Dataset Generalization: AUC (Absolute Quality, Layer h{args.layer})\n{args.model.upper()} - {args.probe.upper()} Probe",
+        f"Cross-Dataset Generalization: Recovered Accuracy (Layer h{current_layer})\n{args.model.upper()} - {args.probe.upper()} Probe",
         fontsize=16,
         pad=20,
         weight='bold'
@@ -250,25 +222,61 @@ if "auc" in df.columns:
     plt.yticks(rotation=0, fontsize=10)
     plt.tight_layout()
 
-    # Save AUC matrix
-    output_file_auc = output_path / "cross_dataset_matrix_auc.png"
-    plt.savefig(output_file_auc, dpi=300, bbox_inches="tight")
-    print(f"✓ Saved AUC Matrix: {output_file_auc}")
-    print(f"  File size: {output_file_auc.stat().st_size / 1024:.1f} KB")
+    # Save recovered accuracy matrix
+    output_file_recovered = layer_output_path / "cross_dataset_matrix_recovered.png"
+    plt.savefig(output_file_recovered, dpi=300, bbox_inches="tight")
+    print(f"\n  ✓ Saved Recovered Accuracy Matrix: {output_file_recovered}")
+    print(f"    File size: {output_file_recovered.stat().st_size / 1024:.1f} KB")
     plt.close()
 
-# Print top generalizing datasets
-print(f"\n" + "=" * 80)
-print("TOP GENERALIZING DATASETS")
-print("=" * 80)
-print(f"\nBest datasets for generalization (train on these):")
-for i, ds in enumerate(dataset_order[:5], 1):
-    score = train_performance[ds]
-    print(f"  {i}. {ds:30s}: {score:.1%} mean recovered accuracy")
+    # Create visualization 2: AUC (absolute probe quality)
+    if "auc" in df.columns:
+        fig, ax = plt.subplots(figsize=(16, 14))
+        sns.heatmap(
+            auc_matrix * 100,  # Convert to percentages for display
+            annot=True,
+            fmt=".0f",
+            cmap="RdYlGn",
+            vmin=50,  # 50% = random guessing
+            vmax=100,
+            cbar=True,
+            ax=ax,
+            linewidths=0.5,
+            annot_kws={"size": 7},
+            cbar_kws={"label": "AUC (%)"}
+        )
 
-print(f"\nWorst datasets for generalization:")
-for i, ds in enumerate(dataset_order[-5:], 1):
-    score = train_performance[ds]
-    print(f"  {i}. {ds:30s}: {score:.1%} mean recovered accuracy")
+        ax.set_title(
+            f"Cross-Dataset Generalization: AUC (Absolute Quality, Layer h{current_layer})\n{args.model.upper()} - {args.probe.upper()} Probe",
+            fontsize=16,
+            pad=20,
+            weight='bold'
+        )
+        ax.set_xlabel("Evaluation Dataset (test on)", fontsize=12, weight='bold')
+        ax.set_ylabel("Training Dataset (train on)", fontsize=12, weight='bold')
+        plt.xticks(rotation=45, ha='right', fontsize=10)
+        plt.yticks(rotation=0, fontsize=10)
+        plt.tight_layout()
+
+        # Save AUC matrix
+        output_file_auc = layer_output_path / "cross_dataset_matrix_auc.png"
+        plt.savefig(output_file_auc, dpi=300, bbox_inches="tight")
+        print(f"  ✓ Saved AUC Matrix: {output_file_auc}")
+        print(f"    File size: {output_file_auc.stat().st_size / 1024:.1f} KB")
+        plt.close()
+
+    # Print top generalizing datasets for this layer
+    print(f"\n  TOP GENERALIZING DATASETS (Layer h{current_layer}):")
+    print(f"  Best datasets for generalization (train on these):")
+    for i, ds in enumerate(dataset_order[:5], 1):
+        score = train_performance[ds]
+        print(f"    {i}. {ds:30s}: {score:.1%} mean recovered accuracy")
+
+    print(f"\n  Worst datasets for generalization:")
+    for i, ds in enumerate(dataset_order[-5:], 1):
+        score = train_performance[ds]
+        print(f"    {i}. {ds:30s}: {score:.1%} mean recovered accuracy")
 
 print("\n" + "=" * 80)
+print(f"✓ COMPLETED: Generated visualizations for {len(layers_to_process)} layer(s)")
+print("=" * 80)

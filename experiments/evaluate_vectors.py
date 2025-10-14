@@ -54,8 +54,8 @@ parser.add_argument('--layer-depth', type=float, default=0.75,
                     help='Relative depth for evaluation (0-1, default 0.75 = 75%% through model)')
 parser.add_argument('--batch-size', type=int, default=16,
                     help='Batch size for activation generation (default 16)')
-parser.add_argument('--eval-limit', type=int, default=2000,
-                    help='Number of examples per dataset for evaluation (default 2000, use 200 for quick tests)')
+parser.add_argument('--eval-limit', type=int, default=5000,
+                    help='Number of examples per dataset for evaluation (default 5000, use 200 for quick tests)')
 args = parser.parse_args()
 
 model_spec = args.model
@@ -105,13 +105,21 @@ if not probe_vectors_file.exists():
     print(f"Please run: python experiments/extract_vectors.py --model {model_spec}")
     sys.exit(1)
 
-# Get datasets
-collections: list[DatasetCollectionId] = ["dlk", "repe", "got"]
+# Get datasets - original collections plus new paper and custom datasets
+collections: list[DatasetCollectionId] = ["dlk", "repe", "got", "paper", "custom"]
+
+# Exclude 100% redundant datasets (>0.999 similarity, empirically verified)
+exclude_datasets = {
+    "arc_easy",        # 0.9997 similar to arc_challenge (duplicate)
+    "amazon_polarity", # 0.9996 similar to imdb (duplicate sentiment)
+    "dbpedia_14",      # 0.9996 similar to ag_news (duplicate topic classification)
+}
+
 all_dataset_ids = [
     dataset_id
     for collection in collections
     for dataset_id in resolve_dataset_ids(collection)
-    if dataset_id != "piqa"
+    if dataset_id != "piqa" and dataset_id not in exclude_datasets
 ]
 
 print(f"Datasets ({len(all_dataset_ids)}): {', '.join(all_dataset_ids)}")

@@ -4,9 +4,12 @@ from tqdm import tqdm
 
 from repeng.datasets.elk.arc import get_arc
 from repeng.datasets.elk.common_sense_qa import get_common_sense_qa
+from repeng.datasets.elk.complex_truth_dataset import get_complex_truth
+from repeng.datasets.elk.diverse_truth_dataset import get_diverse_truth
 from repeng.datasets.elk.dlk import get_dlk_dataset
 from repeng.datasets.elk.geometry_of_truth import get_geometry_of_truth
 from repeng.datasets.elk.open_book_qa import get_open_book_qa
+from repeng.datasets.elk.paper_datasets import get_counterfact_true_false, get_likely
 from repeng.datasets.elk.race import get_race
 from repeng.datasets.elk.true_false import get_true_false_dataset
 from repeng.datasets.elk.truthful_model_written import get_truthful_model_written
@@ -42,6 +45,10 @@ _DATASET_FNS: dict[DatasetId, Callable[[], dict[str, BinaryRow]]] = {
     "boolq": lambda: get_dlk_dataset("boolq"),
     "boolq/simple": lambda: get_dlk_dataset("boolq/simple"),
     "piqa": lambda: get_dlk_dataset("piqa"),
+    "diverse_truth": get_diverse_truth,
+    "complex_truth": get_complex_truth,
+    "likely": get_likely,
+    "counterfact_true_false": get_counterfact_true_false,
 }
 
 

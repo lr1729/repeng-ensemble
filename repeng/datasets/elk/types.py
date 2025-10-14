@@ -33,6 +33,10 @@ DatasetId = Literal[
     "arc_challenge/simple",
     "arc_easy/simple",
     "common_sense_qa/simple",
+    "diverse_truth",
+    "complex_truth",
+    "likely",
+    "counterfact_true_false",
 ]
 
 DlkDatasetId = Literal[
