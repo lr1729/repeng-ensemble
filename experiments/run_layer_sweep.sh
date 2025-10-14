@@ -31,7 +31,7 @@ LLAMA_MODELS=("llama2-7b" "llama2-13b" "llama2-7b-chat" "llama2-13b-chat")
 DEPTHS=("0.25" "0.375" "0.50" "0.625" "0.75" "0.875")
 
 # Batch size to prevent RAM overflow
-BATCH_SIZE=8
+BATCH_SIZE=6
 
 # ==========================================
 # STEP 1: Extract vectors for missing models
@@ -87,122 +87,98 @@ log "=========================================="
 log "STEP 2: Running layer depth evaluations"
 log "=========================================="
 log ""
+log "Using MULTI-LAYER mode: Extracting all 6 depths in ONE pass per model"
+log "  Depths: 25%, 37.5%, 50%, 62.5%, 75%, 87.5%"
+log "  Expected speedup: ~4-5× faster than sequential extraction"
+log ""
 
 # Counter for progress
-TOTAL_EVALS=$((${#QWEN_MODELS[@]} * ${#DEPTHS[@]} + ${#LLAMA_MODELS[@]} * ${#DEPTHS[@]}))
+TOTAL_MODELS=$((${#QWEN_MODELS[@]} + ${#LLAMA_MODELS[@]}))
 CURRENT=0
-
-# Track current loaded model to avoid unnecessary cache clears
-CURRENT_LOADED_MODEL=""
 
 # ==========================================
 # Qwen3 Models
 # ==========================================
 
-log "Testing Qwen3 models at multiple depths..."
+log "Testing Qwen3 models..."
 log ""
 
 for model in "${QWEN_MODELS[@]}"; do
-    # Determine number of layers for this model
-    if [ "$model" == "qwen3-14b" ] || [ "$model" == "qwen3-14b-base" ]; then
-        NUM_LAYERS=40
+    CURRENT=$((CURRENT + 1))
+    log "[$CURRENT/$TOTAL_MODELS] Evaluating: $model (all 6 depths)"
+
+    # Check if any layer already exists (simple heuristic)
+    if [ -d "output/comparison/$model/layer_h9" ] && \
+       [ -d "output/comparison/$model/layer_h13" ] && \
+       [ -d "output/comparison/$model/layer_h18" ] && \
+       [ -d "output/comparison/$model/layer_h22" ] && \
+       [ -d "output/comparison/$model/layer_h27" ] && \
+       [ -d "output/comparison/$model/layer_h31" ]; then
+        log "  ⊘ Skipping (all layers already exist)"
     else
-        NUM_LAYERS=36
-    fi
+        clear_cache
 
-    for depth in "${DEPTHS[@]}"; do
-        CURRENT=$((CURRENT + 1))
-        log "[$CURRENT/$TOTAL_EVALS] Evaluating: $model at ${depth} depth"
-
-        TARGET_LAYER=$(python3 -c "import math; print(int($NUM_LAYERS * $depth))")
-
-        # Check if nearby layers already exist
-        EXISTS=false
-        for offset in -2 -1 0 1 2; do
-            CHECK_LAYER=$((TARGET_LAYER + offset))
-            if [ -f "output/comparison/$model/layer_h$CHECK_LAYER/probe_evaluate-v2.jsonl" ]; then
-                log "  ⊘ Skipping (layer_h$CHECK_LAYER already exists)"
-                EXISTS=true
-                break
-            fi
-        done
-
-        if [ "$EXISTS" = false ]; then
-            # Clear cache only when switching models
-            if [ "$CURRENT_LOADED_MODEL" != "$model" ]; then
-                clear_cache
-                CURRENT_LOADED_MODEL="$model"
-            fi
-
-            if python experiments/evaluate_vectors.py \
-                --model "$model" \
-                --layer-depth "$depth" \
-                --batch-size $BATCH_SIZE \
-                --eval-limit 2000 \
-                2>&1 | tee -a "$LOG_FILE"; then
-                log "  ✓ Completed"
-            else
-                log "  ✗ FAILED - check log for errors"
-                exit 1
-            fi
+        if python experiments/evaluate_vectors.py \
+            --model "$model" \
+            --all-layers \
+            --batch-size $BATCH_SIZE \
+            --eval-limit 2000 \
+            2>&1 | tee -a "$LOG_FILE"; then
+            log "  ✓ Completed all 6 layers"
+        else
+            log "  ✗ FAILED - check log for errors"
+            exit 1
         fi
-        log ""
-    done
+    fi
+    log ""
 done
 
 # ==========================================
 # LLaMA-2 Models
 # ==========================================
 
-log "Testing LLaMA-2 models at multiple depths..."
+log "Testing LLaMA-2 models..."
 log ""
 
 for model in "${LLAMA_MODELS[@]}"; do
-    # LLaMA models have 32 layers (7B) or 40 layers (13B)
+    CURRENT=$((CURRENT + 1))
+    log "[$CURRENT/$TOTAL_MODELS] Evaluating: $model (all 6 depths)"
+
+    # Check if any layer already exists (approximate layer numbers)
+    # LLaMA-7B: h8, h12, h16, h20, h24, h28
+    # LLaMA-13B: h10, h15, h20, h25, h30, h35
     if [[ "$model" == *"7b"* ]]; then
-        NUM_LAYERS=32
+        LAYER_CHECK_DIRS="layer_h8 layer_h12 layer_h16 layer_h20 layer_h24 layer_h28"
     else
-        NUM_LAYERS=40
+        LAYER_CHECK_DIRS="layer_h10 layer_h15 layer_h20 layer_h25 layer_h30 layer_h35"
     fi
 
-    for depth in "${DEPTHS[@]}"; do
-        CURRENT=$((CURRENT + 1))
-        log "[$CURRENT/$TOTAL_EVALS] Evaluating: $model at ${depth} depth"
-
-        TARGET_LAYER=$(python3 -c "import math; print(int($NUM_LAYERS * $depth))")
-
-        # Check if nearby layers already exist
-        EXISTS=false
-        for offset in -2 -1 0 1 2; do
-            CHECK_LAYER=$((TARGET_LAYER + offset))
-            if [ -f "output/comparison/$model/layer_h$CHECK_LAYER/probe_evaluate-v2.jsonl" ]; then
-                log "  ⊘ Skipping (layer_h$CHECK_LAYER already exists)"
-                EXISTS=true
-                break
-            fi
-        done
-
-        if [ "$EXISTS" = false ]; then
-            # Clear cache only when switching models
-            if [ "$CURRENT_LOADED_MODEL" != "$model" ]; then
-                clear_cache
-                CURRENT_LOADED_MODEL="$model"
-            fi
-
-            if python experiments/evaluate_vectors.py \
-                --model "$model" \
-                --layer-depth "$depth" \
-                --batch-size $BATCH_SIZE \
-                --eval-limit 2000 \
-                2>&1 | tee -a "$LOG_FILE"; then
-                log "  ✓ Completed"
-            else
-                log "  ✗ FAILED - check log for errors"
-                exit 1
-            fi
+    ALL_EXIST=true
+    for layer_dir in $LAYER_CHECK_DIRS; do
+        if [ ! -d "output/comparison/$model/$layer_dir" ]; then
+            ALL_EXIST=false
+            break
         fi
-        log ""
     done
+
+    if [ "$ALL_EXIST" = true ]; then
+        log "  ⊘ Skipping (all layers already exist)"
+    else
+        clear_cache
+
+        if python experiments/evaluate_vectors.py \
+            --model "$model" \
+            --all-layers \
+            --batch-size $BATCH_SIZE \
+            --eval-limit 2000 \
+            2>&1 | tee -a "$LOG_FILE"; then
+            log "  ✓ Completed all 6 layers"
+        else
+            log "  ✗ FAILED - check log for errors"
+            exit 1
+        fi
+    fi
+    log ""
 done
 
 # ==========================================

@@ -42,8 +42,8 @@ parser.add_argument('--model', type=str, required=True,
                     help='Model to use')
 parser.add_argument('--layer-skip', type=int, default=2,
                     help='Sample every Nth layer for training probes (default 2)')
-parser.add_argument('--batch-size', type=int, default=16,
-                    help='Batch size for activation generation (default 16)')
+parser.add_argument('--batch-size', type=int, default=6,
+                    help='Batch size for activation generation (default 6)')
 parser.add_argument('--train-limit', type=int, default=5000,
                     help='Number of training examples per dataset (default 5000)')
 args = parser.parse_args()

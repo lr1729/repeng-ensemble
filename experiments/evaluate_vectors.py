@@ -52,8 +52,10 @@ parser.add_argument('--model', type=str, required=True,
                     help='Model to use')
 parser.add_argument('--layer-depth', type=float, default=0.75,
                     help='Relative depth for evaluation (0-1, default 0.75 = 75%% through model)')
-parser.add_argument('--batch-size', type=int, default=16,
-                    help='Batch size for activation generation (default 16)')
+parser.add_argument('--all-layers', action='store_true',
+                    help='Evaluate all 6 standard depths (0.25, 0.375, 0.50, 0.625, 0.75, 0.875) in one pass')
+parser.add_argument('--batch-size', type=int, default=6,
+                    help='Batch size for activation generation (default 6)')
 parser.add_argument('--eval-limit', type=int, default=5000,
                     help='Number of examples per dataset for evaluation (default 5000, use 200 for quick tests)')
 args = parser.parse_args()
@@ -176,6 +178,47 @@ def get_activations_batch(llm, texts: list[str], layer_idx: int):
 
     return activations
 
+def get_activations_batch_multilayer(llm, texts: list[str], layer_indices: list[int]):
+    """Get activations for a batch of texts at multiple layers simultaneously"""
+    tokenized = llm.tokenizer(
+        texts,
+        return_tensors="pt",
+        padding=True,
+        truncation=True,
+        max_length=2048,
+    )
+
+    input_ids = tokenized["input_ids"].to(next(llm.model.parameters()).device)
+    attention_mask = tokenized["attention_mask"].to(next(llm.model.parameters()).device)
+
+    # Get points for all layers we want
+    points = [llm.points[idx] for idx in layer_indices]
+
+    # Run forward pass with hooks for ALL layers at once
+    from repeng.hooks.grab import grab_many
+    with grab_many(llm.model, points) as activation_fn:
+        with torch.no_grad():
+            llm.model.forward(input_ids, attention_mask=attention_mask, return_dict=True)
+        layer_activations = activation_fn()
+
+    # Extract last token activations for each layer
+    activations_by_layer = {idx: [] for idx in layer_indices}
+
+    for layer_idx, point in zip(layer_indices, points):
+        point_name = point.name
+        acts = layer_activations[point_name]
+
+        batch_size = acts.shape[0]
+        for i in range(batch_size):
+            seq_len = attention_mask[i].sum().item()
+            last_token_act = acts[i, seq_len - 1, :].detach()
+            # Convert bfloat16 to float16 (numpy doesn't support bfloat16)
+            last_token_act = last_token_act.to(dtype=torch.float16)
+            last_token_act = last_token_act.cpu().numpy()
+            activations_by_layer[layer_idx].append(last_token_act)
+
+    return activations_by_layer
+
 def get_activations_for_split(dataset_id: str, split: str, llm, limit: int, layer_idx: int, batch_size: int):
     """Get activations for a dataset split at specific layer"""
     dataset_rows = get_dataset(dataset_id)
@@ -276,97 +319,242 @@ print(f"✓ Loaded {len(probe_vectors)} probe vectors")
 print(f"  Available layers: {sorted(set(k[1] for k in probe_vectors.keys()))}")
 print()
 
-# Check if optimal layer exists, if not find nearest
-available_layers = sorted(set(k[1] for k in probe_vectors.keys()))
-if optimal_point_name not in available_layers:
-    # Find nearest available layer
-    available_layer_nums = [int(name.lstrip('h')) for name in available_layers]
-    target_layer_num = int(optimal_point_name.lstrip('h'))
-    nearest_layer_num = min(available_layer_nums, key=lambda x: abs(x - target_layer_num))
-    optimal_point_name = f"h{nearest_layer_num}"
-    optimal_layer_idx = nearest_layer_num
-    actual_depth = optimal_layer_idx / num_layers
-    print(f"Note: Requested layer h{target_layer_num} ({args.layer_depth:.1%}) not available")
-    print(f"      Using nearest trained layer: {optimal_point_name} ({actual_depth:.1%} depth)")
+# Calculate target layers
+if args.all_layers:
+    # Standard 6 depths used in paper
+    standard_depths = [0.25, 0.375, 0.50, 0.625, 0.75, 0.875]
+    target_layers = []
+    for depth in standard_depths:
+        layer_idx = int(num_layers * depth)
+        layer_idx = max(1, min(layer_idx, num_layers - 1))
+        target_layers.append((layer_idx, all_points[layer_idx].name, depth))
+
+    print(f"Multi-layer mode: Evaluating {len(target_layers)} depths in ONE pass")
+    for idx, name, depth in target_layers:
+        print(f"  • Layer {name:4s} ({depth:5.1%} = {idx}/{num_layers})")
+    print()
 else:
-    actual_depth = optimal_layer_idx / num_layers
+    # Single layer mode (original behavior)
+    target_layers = [(optimal_layer_idx, optimal_point_name, args.layer_depth)]
+    print(f"Single-layer mode: Evaluating at {optimal_point_name} ({args.layer_depth:.1%} depth)")
+    print()
 
-# Now create output directory with actual layer being used
-layer_subdir = output_dir / f"layer_{optimal_point_name}"
-layer_subdir.mkdir(parents=True, exist_ok=True)
-results_file = layer_subdir / "probe_evaluate-v2.jsonl"
+# Find nearest available layers for all targets
+available_layers = sorted(set(k[1] for k in probe_vectors.keys()))
+available_layer_nums = [int(name.lstrip('h')) for name in available_layers]
 
-print(f"Using layer: {optimal_point_name} ({actual_depth:.1%} actual depth)")
-print(f"Output: {results_file}")
+layers_to_eval = []
+for target_idx, target_name, target_depth in target_layers:
+    target_num = int(target_name.lstrip('h'))
+    if target_name in available_layers:
+        layers_to_eval.append((target_idx, target_name, target_depth))
+        print(f"✓ Layer {target_name} ({target_depth:.1%}) found in probe vectors")
+    else:
+        # Find nearest available layer
+        nearest_num = min(available_layer_nums, key=lambda x: abs(x - target_num))
+        nearest_name = f"h{nearest_num}"
+        actual_depth = nearest_num / num_layers
+        layers_to_eval.append((nearest_num, nearest_name, actual_depth))
+        print(f"⚠ Layer {target_name} ({target_depth:.1%}) not found, using nearest: {nearest_name} ({actual_depth:.1%})")
+
 print()
 
 print("[2/4] Loading model...")
 llm = load_llm_oioo(MODEL_ID, device=torch.device("cuda"), use_half_precision=True)
 print("✓ Model loaded\n")
 
-results = []
 total_eval = len(all_dataset_ids) * len(all_dataset_ids)
 
-print(f"[3/4] Generating evaluation activations (once per dataset)...")
-print(f"Generating activations for {len(all_dataset_ids)} datasets at layer {optimal_point_name}")
-print()
+if args.all_layers:
+    # Multi-layer mode: Extract all layers at once
+    print(f"[3/4] Generating evaluation activations for ALL {len(layers_to_eval)} layers...")
+    print(f"Extracting {len(all_dataset_ids)} datasets × {len(layers_to_eval)} layers = {len(all_dataset_ids) * len(layers_to_eval)} activations")
+    print()
 
-# Cache evaluation activations (generate once per dataset, reuse 17 times)
-eval_activations_cache = {}
-for eval_dataset in tqdm(all_dataset_ids, desc="Caching eval activations"):
-    test_acts, test_labels, test_groups = get_activations_for_split(
-        eval_dataset, "test", llm, args.eval_limit, optimal_layer_idx, args.batch_size
-    )
-    eval_activations_cache[eval_dataset] = (test_acts, test_labels, test_groups)
+    # Get all layer indices we need
+    layer_indices = [idx for idx, name, depth in layers_to_eval]
 
-print(f"\n[4/5] Evaluating cross-dataset generalization...")
-print(f"Total evaluations: {len(all_dataset_ids)} train × {len(all_dataset_ids)} eval = {total_eval}")
-print(f"Using cached activations with {len(probe_vectors)} probes")
-print()
+    # Cache activations for all layers simultaneously
+    # Structure: {dataset_id: {layer_idx: (acts, labels, groups)}}
+    eval_activations_cache_multilayer = {}
 
-with tqdm(total=total_eval, desc="Evaluating probes") as pbar:
-    for train_dataset in all_dataset_ids:
-        for eval_dataset in all_dataset_ids:
-            # Get cached evaluation activations
-            test_acts, test_labels, test_groups = eval_activations_cache[eval_dataset]
+    for eval_dataset in tqdm(all_dataset_ids, desc="Caching eval activations"):
+        dataset_rows = get_dataset(eval_dataset)
 
-            # Get probe for this dataset/layer combination
-            probe_key = (train_dataset, optimal_point_name)
-            if probe_key not in probe_vectors:
-                print(f"\nWARNING: Probe not found for {probe_key}, skipping...")
+        # Get test split
+        splits_to_try = ["test", "validation", "val", "train"]
+        rows = []
+        split_used = None
+        for try_split in splits_to_try:
+            rows = [r for k, r in dataset_rows.items() if r.split == try_split]
+            if rows:
+                split_used = try_split
+                break
+
+        if not rows:
+            raise ValueError(f"No data found for dataset '{eval_dataset}'")
+
+        # Skip training examples if using train split
+        if split_used == "train":
+            rows = rows[400:]
+
+        rows = rows[:args.eval_limit]
+
+        # Extract activations for ALL layers in one pass
+        dataset_activations_by_layer = {idx: [] for idx in layer_indices}
+        labels = []
+        groups = []
+
+        for i in range(0, len(rows), args.batch_size):
+            batch_rows = rows[i:i + args.batch_size]
+            batch_texts = [row.text for row in batch_rows]
+
+            # Get activations for ALL layers at once
+            batch_acts_by_layer = get_activations_batch_multilayer(llm, batch_texts, layer_indices)
+
+            for layer_idx in layer_indices:
+                dataset_activations_by_layer[layer_idx].extend(batch_acts_by_layer[layer_idx])
+
+            # Labels and groups only need to be collected once
+            if i == 0 or len(labels) < len(rows):
+                for row in batch_rows:
+                    labels.append(row.label)
+                    groups.append(row.group_id if row.group_id else None)
+
+        # Store activations for each layer
+        eval_activations_cache_multilayer[eval_dataset] = {}
+        for layer_idx in layer_indices:
+            eval_activations_cache_multilayer[eval_dataset][layer_idx] = (
+                dataset_activations_by_layer[layer_idx],
+                labels,
+                groups
+            )
+
+    # Now evaluate for each layer
+    print(f"\n[4/4] Evaluating cross-dataset generalization for {len(layers_to_eval)} layers...")
+    print(f"Total evaluations: {len(layers_to_eval)} layers × {len(all_dataset_ids)} train × {len(all_dataset_ids)} eval = {len(layers_to_eval) * total_eval}")
+    print()
+
+    for layer_idx, layer_name, layer_depth in tqdm(layers_to_eval, desc="Processing layers"):
+        results = []
+
+        for train_dataset in all_dataset_ids:
+            for eval_dataset in all_dataset_ids:
+                # Get cached evaluation activations for this layer
+                test_acts, test_labels, test_groups = eval_activations_cache_multilayer[eval_dataset][layer_idx]
+
+                # Get probe for this dataset/layer combination
+                probe_key = (train_dataset, layer_name)
+                if probe_key not in probe_vectors:
+                    continue
+
+                probe = probe_vectors[probe_key]
+
+                # Evaluate
+                acc, n, auc = eval_probe(probe, test_acts, test_labels, test_groups)
+
+                results.append(PipelineResultRow(
+                    llm_id=MODEL_ID,
+                    train_dataset=train_dataset,
+                    eval_dataset=eval_dataset,
+                    probe_method="dim",
+                    point_name=layer_name,
+                    token_idx=-1,
+                    accuracy=acc,
+                    accuracy_n=n,
+                    auc=auc,
+                ))
+
+        # Save results for this layer
+        layer_subdir = output_dir / f"layer_{layer_name}"
+        layer_subdir.mkdir(parents=True, exist_ok=True)
+        results_file = layer_subdir / "probe_evaluate-v2.jsonl"
+
+        with jsonlines.open(results_file, mode='w') as writer:
+            for i, result in enumerate(results):
+                writer.write({"key": f"result_{i}", "value": result.model_dump()})
+
+        print(f"  ✓ Layer {layer_name} ({layer_depth:.1%}): {len(results)} evaluations → {results_file}")
+
+    print("\n" + "="*80)
+    print(f"SUCCESS! Evaluated {len(layers_to_eval)} layers")
+    print("Run visualization:")
+    print(f"  python experiments/visualize.py --model {model_spec}")
+    print("="*80)
+
+else:
+    # Single-layer mode (original behavior)
+    layer_idx, layer_name, layer_depth = layers_to_eval[0]
+
+    # Create output directory
+    layer_subdir = output_dir / f"layer_{layer_name}"
+    layer_subdir.mkdir(parents=True, exist_ok=True)
+    results_file = layer_subdir / "probe_evaluate-v2.jsonl"
+
+    print(f"Output: {results_file}")
+    print()
+
+    print(f"[3/4] Generating evaluation activations (once per dataset)...")
+    print(f"Generating activations for {len(all_dataset_ids)} datasets at layer {layer_name}")
+    print()
+
+    # Cache evaluation activations (generate once per dataset, reuse for all probes)
+    eval_activations_cache = {}
+    for eval_dataset in tqdm(all_dataset_ids, desc="Caching eval activations"):
+        test_acts, test_labels, test_groups = get_activations_for_split(
+            eval_dataset, "test", llm, args.eval_limit, layer_idx, args.batch_size
+        )
+        eval_activations_cache[eval_dataset] = (test_acts, test_labels, test_groups)
+
+    print(f"\n[4/4] Evaluating cross-dataset generalization...")
+    print(f"Total evaluations: {len(all_dataset_ids)} train × {len(all_dataset_ids)} eval = {total_eval}")
+    print(f"Using cached activations with {len(probe_vectors)} probes")
+    print()
+
+    results = []
+    with tqdm(total=total_eval, desc="Evaluating probes") as pbar:
+        for train_dataset in all_dataset_ids:
+            for eval_dataset in all_dataset_ids:
+                # Get cached evaluation activations
+                test_acts, test_labels, test_groups = eval_activations_cache[eval_dataset]
+
+                # Get probe for this dataset/layer combination
+                probe_key = (train_dataset, layer_name)
+                if probe_key not in probe_vectors:
+                    print(f"\nWARNING: Probe not found for {probe_key}, skipping...")
+                    pbar.update(1)
+                    continue
+
+                probe = probe_vectors[probe_key]
+
+                # Evaluate
+                acc, n, auc = eval_probe(probe, test_acts, test_labels, test_groups)
+
+                results.append(PipelineResultRow(
+                    llm_id=MODEL_ID,
+                    train_dataset=train_dataset,
+                    eval_dataset=eval_dataset,
+                    probe_method="dim",
+                    point_name=layer_name,
+                    token_idx=-1,
+                    accuracy=acc,
+                    accuracy_n=n,
+                    auc=auc,
+                ))
+
                 pbar.update(1)
-                continue
 
-            probe = probe_vectors[probe_key]
+    # Save results
+    print(f"\nSaving results...")
+    print(f"  Saving {len(results)} evaluations...")
+    with jsonlines.open(results_file, mode='w') as writer:
+        for i, result in enumerate(results):
+            writer.write({"key": f"result_{i}", "value": result.model_dump()})
 
-            # Evaluate
-            acc, n, auc = eval_probe(probe, test_acts, test_labels, test_groups)
+    print(f"✓ Saved evaluations: {results_file}")
+    print(f"  File size: {results_file.stat().st_size / 1024:.1f} KB")
 
-            results.append(PipelineResultRow(
-                llm_id=MODEL_ID,
-                train_dataset=train_dataset,
-                eval_dataset=eval_dataset,
-                probe_method="dim",
-                point_name=optimal_point_name,
-                token_idx=-1,
-                accuracy=acc,
-                accuracy_n=n,
-                auc=auc,
-            ))
-
-            pbar.update(1)
-
-# Save results
-print(f"\n[5/5] Saving results...")
-print(f"  Saving {len(results)} evaluations...")
-with jsonlines.open(results_file, mode='w') as writer:
-    for i, result in enumerate(results):
-        writer.write({"key": f"result_{i}", "value": result.model_dump()})
-
-print(f"✓ Saved evaluations: {results_file}")
-print(f"  File size: {results_file.stat().st_size / 1024:.1f} KB")
-
-print("\n" + "="*80)
-print("SUCCESS! Run visualization:")
-print(f"  python experiments/visualize.py --model {model_spec}")
-print("="*80)
+    print("\n" + "="*80)
+    print("SUCCESS! Run visualization:")
+    print(f"  python experiments/visualize.py --model {model_spec}")
+    print("="*80)
