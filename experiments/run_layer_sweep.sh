@@ -3,6 +3,7 @@
 # Estimated time: 6-8 hours
 
 set -e  # Exit on error
+set -o pipefail  # Exit on pipe failures too
 
 LOG_FILE="layer_sweep_$(date +%Y%m%d_%H%M%S).log"
 CACHE_DIR="/workspace/.cache/huggingface/hub"
@@ -39,15 +40,41 @@ BATCH_SIZE=8
 log "STEP 1: Extracting probe vectors for missing models"
 log ""
 
-for model in "llama2-7b" "llama2-7b-chat"; do
+# Check Qwen models
+for model in "${QWEN_MODELS[@]}"; do
     if [ ! -f "output/comparison/$model/probe_vectors.jsonl" ]; then
         clear_cache
         log "Extracting vectors: $model (batch-size=$BATCH_SIZE)"
-        python experiments/extract_vectors.py \
+        if python experiments/extract_vectors.py \
             --model "$model" \
             --batch-size $BATCH_SIZE \
-            2>&1 | tee -a "$LOG_FILE"
-        log "✓ Completed: $model"
+            2>&1 | tee -a "$LOG_FILE"; then
+            log "✓ Completed: $model"
+        else
+            log "✗ FAILED: $model - check log for errors"
+            exit 1
+        fi
+        log ""
+    else
+        log "⊘ Skipping $model (vectors already exist)"
+        log ""
+    fi
+done
+
+# Check LLaMA models
+for model in "${LLAMA_MODELS[@]}"; do
+    if [ ! -f "output/comparison/$model/probe_vectors.jsonl" ]; then
+        clear_cache
+        log "Extracting vectors: $model (batch-size=$BATCH_SIZE)"
+        if python experiments/extract_vectors.py \
+            --model "$model" \
+            --batch-size $BATCH_SIZE \
+            2>&1 | tee -a "$LOG_FILE"; then
+            log "✓ Completed: $model"
+        else
+            log "✗ FAILED: $model - check log for errors"
+            exit 1
+        fi
         log ""
     else
         log "⊘ Skipping $model (vectors already exist)"
@@ -107,13 +134,17 @@ for model in "${QWEN_MODELS[@]}"; do
                 CURRENT_LOADED_MODEL="$model"
             fi
 
-            python experiments/evaluate_vectors.py \
+            if python experiments/evaluate_vectors.py \
                 --model "$model" \
                 --layer-depth "$depth" \
                 --batch-size $BATCH_SIZE \
                 --eval-limit 2000 \
-                2>&1 | tee -a "$LOG_FILE"
-            log "  ✓ Completed"
+                2>&1 | tee -a "$LOG_FILE"; then
+                log "  ✓ Completed"
+            else
+                log "  ✗ FAILED - check log for errors"
+                exit 1
+            fi
         fi
         log ""
     done
@@ -158,13 +189,17 @@ for model in "${LLAMA_MODELS[@]}"; do
                 CURRENT_LOADED_MODEL="$model"
             fi
 
-            python experiments/evaluate_vectors.py \
+            if python experiments/evaluate_vectors.py \
                 --model "$model" \
                 --layer-depth "$depth" \
                 --batch-size $BATCH_SIZE \
                 --eval-limit 2000 \
-                2>&1 | tee -a "$LOG_FILE"
-            log "  ✓ Completed"
+                2>&1 | tee -a "$LOG_FILE"; then
+                log "  ✓ Completed"
+            else
+                log "  ✗ FAILED - check log for errors"
+                exit 1
+            fi
         fi
         log ""
     done
